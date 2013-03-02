@@ -24,10 +24,21 @@ public class Logger {
 	}
 
 	public void error(@NotNull String message, @Nullable Throwable e) {
-		if(logger.isLoggable(Level.WARNING)) {
+		if(logger.isLoggable(Level.SEVERE)) {
 			String stackTrace = e == null ? "" : "\n" + ExceptionUtils.getFullStackTrace(e);
 			logger.severe(message + stackTrace);
 		}
+	}
+
+	public void error(Throwable e) {
+		if(logger.isLoggable(Level.SEVERE)) {
+			String stackTrace = e == null ? "" : ExceptionUtils.getFullStackTrace(e);
+			logger.severe(stackTrace);
+		}
+	}
+
+	public void error(String message) {
+		logger.severe(message);
 	}
 
 	public void warn(String s) {
@@ -48,6 +59,13 @@ public class Logger {
 	public void infop(String format, Object... args) {
 		if(logger.isLoggable(Level.INFO)) {
 			info(String.format(format, args));
+		}
+	}
+
+	public void info(String message, Throwable e) {
+		if(logger.isLoggable(Level.INFO)) {
+			String stackTrace = e == null ? "" : "\n" + ExceptionUtils.getFullStackTrace(e);
+			logger.info(message + "\n" + stackTrace);
 		}
 	}
 }
