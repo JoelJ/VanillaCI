@@ -3,6 +3,7 @@ package com.joelj.distributedinvoke;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.Test;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.net.Inet4Address;
 import java.net.InetAddress;
@@ -17,11 +18,19 @@ import static org.testng.Assert.*;
  */
 public class CommunicationTest {
 	private RemoteMachineListener listener;
+	private RemoteMachine machine;
 
 	@AfterMethod
-	public void tearDown() {
+	public void tearDownListener() throws IOException {
 		if(listener != null) {
 			listener.close();
+		}
+	}
+
+	@AfterMethod
+	public void tearDownMachine() throws IOException, InterruptedException {
+		if(machine != null) {
+			machine.close();
 		}
 	}
 
@@ -31,8 +40,7 @@ public class CommunicationTest {
 		int listeningPort = 9191;
 
 		listener = RemoteMachineListener.start(localHost, listeningPort);
-
-		RemoteMachine machine = RemoteMachineImpl.connectToMachine("Test Machine", localHost, listeningPort);
+		machine = RemoteMachineImpl.connectToMachine("Test Machine", localHost, listeningPort);
 
 		String invoke = machine.invoke(new MyCallable("Hello There"));
 
