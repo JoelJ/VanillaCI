@@ -24,6 +24,11 @@ public class Transport<T> implements Serializable {
 		return new Transport<T>(id, object);
 	}
 
+	@NotNull
+	public static <T> Transport<T> wrapWithId(@Nullable T object, @NotNull String id) {
+		return new Transport<T>(id, object);
+	}
+
 	private Transport(@NotNull String id, @Nullable T object) {
 		this.id = id;
 		this.object = object;
