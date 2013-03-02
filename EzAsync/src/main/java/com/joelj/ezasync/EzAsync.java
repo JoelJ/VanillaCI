@@ -4,7 +4,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * User: Joel Johnson
@@ -26,7 +25,7 @@ public class EzAsync {
 	 * @param task Invoked in it's own thread.
 	 * @param callback Invoked in the same thread that the task is invoked by.
 	 */
-	public <T> void execute(@NotNull Callable<T> task, @NotNull Callback<T> callback) {
+	public <T> void execute(@NotNull Callable<T> task, @Nullable Callback<T> callback) {
 		Thread thread = new Thread(new CallbackWrapper<T>(task, callback), this.toString());
 		thread.start();
 	}
@@ -40,10 +39,10 @@ public class EzAsync {
 	}
 
 	private static class CallbackWrapper<T> implements Runnable {
-		private final Callable<T> task;
-		private final Callback<T> callback;
+		@NotNull private final Callable<T> task;
+		@Nullable private final Callback<T> callback;
 
-		public CallbackWrapper(@NotNull Callable<T> task, @NotNull Callback<T> callback) {
+		public CallbackWrapper(@NotNull Callable<T> task, @Nullable Callback<T> callback) {
 			this.task = task;
 			this.callback = callback;
 		}
@@ -52,7 +51,9 @@ public class EzAsync {
 		public void run() {
 			try {
 				T result = task.call();
-				callback.done(result);
+				if(callback != null) {
+					callback.done(result);
+				}
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}
