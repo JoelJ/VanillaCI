@@ -14,61 +14,17 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class EzAsync {
 	private static final int DEFAULT_THREADPOOL_SIZE = 20;
 
-	private final ThreadPoolExecutor executor;
-	private int threadPoolSize;
-
 	@NotNull
 	public static EzAsync create() {
-		return createWithThreadPoolSize(DEFAULT_THREADPOOL_SIZE);
+		return new EzAsync();
+	}
+	private EzAsync() {
+
 	}
 
-	@NotNull
-	public static EzAsync createWithThreadPoolSize(int size) {
-		return new EzAsync(size);
-	}
-
-	private EzAsync(int threadPoolSize) {
-		this.threadPoolSize = threadPoolSize;
-
-		ThreadFactory threadFactory = new EzThreadFactory(this.toString());
-		executor = new ThreadPoolExecutor(1, DEFAULT_THREADPOOL_SIZE, 1, TimeUnit.MINUTES, new LinkedBlockingQueue<Runnable>(), threadFactory);
-	}
-
-	public int getThreadPoolSize() {
-		return threadPoolSize;
-	}
-
-	public void setThreadPoolSize(int value) {
-		if(value <= 0) {
-			throw new IllegalArgumentException("value must be positive, but was " + value);
-		}
-		threadPoolSize = value;
-		executor.setCorePoolSize(value);
-	}
-
-	@NotNull
-	public <T> Future<T> execute(@NotNull Callable<T> task) {
-		return executor.submit(task);
-	}
-
-	@NotNull
-	public <T> Future<T> execute(@NotNull Callable<T> task, @NotNull Callback<T> callback) {
-		return executor.submit(new CallbackWrapper<T>(task, callback));
-	}
-
-	private static class EzThreadFactory implements ThreadFactory {
-		private final String name;
-		private final AtomicInteger threadNumber = new AtomicInteger(0);
-
-		public EzThreadFactory(@NotNull String name) {
-			this.name = name;
-		}
-
-		@NotNull
-		@Override
-		public Thread newThread(Runnable r) {
-			return new Thread(name + "-" + threadNumber.incrementAndGet());
-		}
+	public <T> void execute(@NotNull Callable<T> task, @NotNull Callback<T> callback) {
+		Thread thread = new Thread(new CallbackWrapper<T>(task, callback));
+		thread.start();
 	}
 
 	public static interface Callback<T> {
@@ -79,7 +35,7 @@ public class EzAsync {
 		void done(@Nullable T result);
 	}
 
-	private static class CallbackWrapper<T> implements Callable<T> {
+	private static class CallbackWrapper<T> implements Runnable {
 		private final Callable<T> task;
 		private final Callback<T> callback;
 
@@ -88,12 +44,14 @@ public class EzAsync {
 			this.callback = callback;
 		}
 
-		@Nullable
 		@Override
-		public T call() throws Exception {
-			T result = task.call();
-			callback.done(result);
-			return result;
+		public void run() {
+			try {
+				T result = task.call();
+				callback.done(result);
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
 		}
 	}
 }
