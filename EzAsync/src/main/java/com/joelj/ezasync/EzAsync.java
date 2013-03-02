@@ -76,7 +76,7 @@ public class EzAsync {
 		 * Called when the future is done.
 		 * @param result The result of the callable executed by {@link EzAsync#execute(java.util.concurrent.Callable, com.joelj.ezasync.EzAsync.Callback)}}
 		 */
-		void done(@NotNull T result);
+		void done(@Nullable T result);
 	}
 
 	private static class CallbackWrapper<T> implements Callable<T> {
