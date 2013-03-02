@@ -100,7 +100,9 @@ public class RemoteMachineListener implements Closeable {
 
 				Object object;
 				try {
+					LOGGER.info("Waiting for request");
 					object = inputStream.readObject();
+					LOGGER.info("Received request");
 				} catch (IOException e) {
 					LOGGER.error(e);
 					continue;
@@ -115,8 +117,10 @@ public class RemoteMachineListener implements Closeable {
 					Object requestObject = transport.getObject();
 
 					if(requestObject instanceof Callable) {
+						LOGGER.info("Scheduling request to be executed");
 						//noinspection unchecked
-						ezAsync.execute((Callable<Object>) requestObject, new RequestCallback(requestId, clientSocket));
+						ezAsync.execute((Callable) requestObject, new RequestCallback(requestId, clientSocket));
+						LOGGER.info("Request execution scheduled");
 					} else {
 						LOGGER.error("Unexpected object type. Expected " + Callable.class.getCanonicalName() + " but was " + (requestObject == null ? "null" : requestObject.getClass().getCanonicalName()));
 					}
@@ -126,11 +130,16 @@ public class RemoteMachineListener implements Closeable {
 				}
 			}
 
+			try {
+				serverSocket.close();
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
 			LOGGER.info("Listener shut down.");
 		}
 	}
 
-	private static class RequestCallback implements EzAsync.Callback {
+	private static class RequestCallback implements EzAsync.Callback<String> {
 		@NotNull
 		private final String id;
 
@@ -143,10 +152,12 @@ public class RemoteMachineListener implements Closeable {
 		}
 
 		@Override
-		public void done(@Nullable Object result) {
-			Transport<Object> response = Transport.wrapWithId(result, id);
+		public void done(@Nullable String result) {
+			LOGGER.info("Done executing request and received result");
+			Transport<?> response = Transport.wrapWithId(result, id);
 			try {
 				ObjectOutputStream outputStream = new ObjectOutputStream(clientSocket.getOutputStream());
+				LOGGER.info("Writing response");
 				outputStream.writeObject(response);
 			} catch (IOException e) {
 				LOGGER.error("Couldn't write response.", e);
