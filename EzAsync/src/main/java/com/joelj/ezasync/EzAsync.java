@@ -12,24 +12,28 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Time: 8:37 PM
  */
 public class EzAsync {
-	private static final int DEFAULT_THREADPOOL_SIZE = 20;
-
 	@NotNull
 	public static EzAsync create() {
 		return new EzAsync();
 	}
+
 	private EzAsync() {
 
 	}
 
+	/**
+	 * Executes the given task in it's own thread and calls the callback when that task is done.
+	 * @param task Invoked in it's own thread.
+	 * @param callback Invoked in the same thread that the task is invoked by.
+	 */
 	public <T> void execute(@NotNull Callable<T> task, @NotNull Callback<T> callback) {
-		Thread thread = new Thread(new CallbackWrapper<T>(task, callback));
+		Thread thread = new Thread(new CallbackWrapper<T>(task, callback), this.toString());
 		thread.start();
 	}
 
 	public static interface Callback<T> {
 		/**
-		 * Called when the future is done.
+		 * Called when the task is complete.
 		 * @param result The result of the callable executed by {@link EzAsync#execute(java.util.concurrent.Callable, com.joelj.ezasync.EzAsync.Callback)}}
 		 */
 		void done(@Nullable T result);
