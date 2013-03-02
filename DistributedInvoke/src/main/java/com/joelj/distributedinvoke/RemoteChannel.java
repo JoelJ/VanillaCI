@@ -66,7 +66,7 @@ public class RemoteChannel implements Closeable {
 	 * @throws InterruptedException When the thread is canceled.
 	 */
 	@NotNull
-	public ResultFuture writeObject(@Nullable Object object) throws IOException, InterruptedException {
+	public ResultFuture writeRequest(@Nullable Object object) throws IOException, InterruptedException {
 		Transport<Object> transport = Transport.wrap(object);
 
 		synchronized (writeLock) {
@@ -89,7 +89,7 @@ public class RemoteChannel implements Closeable {
 	 * @throws InterruptedException When the thread is canceled.
 	 * @throws ClassPathOutOfSyncException When the response is an object that is not on the local JVM classpath.
 	 */
-	public void readObject() throws IOException, InterruptedException, ClassPathOutOfSyncException {
+	public void readResponse() throws IOException, InterruptedException, ClassPathOutOfSyncException {
 		Object readObject;
 		synchronized (readLock) {
 			ObjectInputStream inputStream = getInputStream();

@@ -65,7 +65,7 @@ public class RemoteMachineImpl implements RemoteMachine, Invokable, Closeable {
 	@Nullable
 	@Override
 	public <T extends Serializable> T invoke(@NotNull Callable<T> remoteCall) throws IOException, InterruptedException {
-		ResultFuture resultFuture = channel.writeObject(remoteCall);
+		ResultFuture resultFuture = channel.writeRequest(remoteCall);
 		Object result = resultFuture.waitForResult();
 		//noinspection unchecked
 		return (T)result;
@@ -103,7 +103,7 @@ public class RemoteMachineImpl implements RemoteMachine, Invokable, Closeable {
 				while(!thread.isInterrupted()) {
 					try {
 						LOGGER.info("Waiting for response");
-						channel.readObject();
+						channel.readResponse();
 						LOGGER.info("Received response");
 					} catch (IOException e) {
 						throw new RuntimeException(e);
