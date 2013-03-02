@@ -26,6 +26,16 @@ public class RemoteMachineListener implements Closeable {
 	private final transient EzAsync ezAsync;
 
 	/**
+	 * Creates the listener and starts listening.
+	 * @param bindAddress The address to bind to.
+	 * @param listeningPort The port to listen on.
+	 * @return The new instance of RemoteMachineListener that is actively listening for a new connection.
+	 */
+	public static RemoteMachineListener start(@NotNull InetAddress bindAddress, int listeningPort) {
+		return new RemoteMachineListener(bindAddress, listeningPort);
+	}
+
+	/**
 	 * @param bindAddress The address to bind to.
 	 * @param listeningPort Must be between 1 and 65535. On some operating systems, if the value is between 1 and 1024 the underlying JVM may need special privileges to open the socket.
 	 */
