@@ -30,6 +30,10 @@ public class Logger {
 		}
 	}
 
+	public void warn(String s) {
+		logger.warning(s);
+	}
+
 	public void warn(String message, Throwable e) {
 		if(logger.isLoggable(Level.WARNING)) {
 			String stackTrace = e == null ? "" : "\n" + ExceptionUtils.getFullStackTrace(e);
