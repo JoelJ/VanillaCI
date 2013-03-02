@@ -2,6 +2,7 @@ package com.joelj.distributedinvoke;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.io.Closeable;
 import java.net.InetAddress;
 
 /**
@@ -9,7 +10,7 @@ import java.net.InetAddress;
  * Date: 3/2/13
  * Time: 12:21 AM
  */
-public interface RemoteMachine extends Invokable {
+public interface RemoteMachine extends Invokable, Closeable {
 	@NotNull
 	String getName();
 

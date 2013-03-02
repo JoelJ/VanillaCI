@@ -15,7 +15,7 @@ import java.util.concurrent.Callable;
  * Date: 3/1/13
  * Time: 10:45 PM
  */
-public class RemoteMachineImpl implements RemoteMachine, Invokable, Closeable {
+public class RemoteMachineImpl implements RemoteMachine, Invokable {
 	private static final Logger LOGGER = Logger.forClass(RemoteChannel.class);
 
 	private final String name;
