@@ -26,7 +26,8 @@ public class RemoteMachineListener implements Closeable {
 
 	/**
 	 * Creates the listener and starts listening.
-	 * @param bindAddress The address to bind to.
+	 *
+	 * @param bindAddress   The address to bind to.
 	 * @param listeningPort The port to listen on.
 	 * @return The new instance of RemoteMachineListener that is actively listening for a new connection.
 	 */
@@ -35,7 +36,7 @@ public class RemoteMachineListener implements Closeable {
 	}
 
 	/**
-	 * @param bindAddress The address to bind to.
+	 * @param bindAddress   The address to bind to.
 	 * @param listeningPort Must be between 1 and 65535. On some operating systems, if the value is between 1 and 1024 the underlying JVM may need special privileges to open the socket.
 	 */
 	private RemoteMachineListener(@NotNull InetAddress bindAddress, int listeningPort) {
@@ -69,55 +70,57 @@ public class RemoteMachineListener implements Closeable {
 				throw new RuntimeException(e);
 			}
 
-			while(!Thread.interrupted() && !channel.isClosed()) {
-				ObjectInputStream inputStream;
-				try {
-					inputStream = channel.getInputStream();
-				} catch (InterruptedException e) {
-					LOGGER.error("Thread interrupted while obtaining the input stream. Attempting clean shutdown.");
-					break;
-				} catch (IOException e) {
-					throw new RuntimeException(e);
-				}
-
-				Object object;
-				try {
-					LOGGER.info("Waiting for request");
-					object = inputStream.readObject();
-					LOGGER.info("Received request");
-				} catch (IOException e) {
-					LOGGER.error(e);
-					continue;
-				} catch (ClassNotFoundException e) {
-					LOGGER.error("Class path is out of sync", e);
-					continue;
-				}
-
-				if(object != null && object instanceof Transport) {
-					Transport transport = (Transport)object;
-					String requestId = transport.getId();
-					Object requestObject = transport.getObject();
-
-					if(requestObject instanceof Callable) {
-						LOGGER.info("Scheduling request to be executed");
-						//noinspection unchecked
-						ezAsync.execute((Callable) requestObject, new RequestCallback(requestId, channel));
-						LOGGER.info("Request execution scheduled");
-					} else {
-						LOGGER.error("Unexpected object type. Expected " + Callable.class.getCanonicalName() + " but was " + (requestObject == null ? "null" : requestObject.getClass().getCanonicalName()));
+			try {
+				while (!Thread.interrupted() && !channel.isClosed()) {
+					ObjectInputStream inputStream;
+					try {
+						inputStream = channel.getInputStream();
+					} catch (InterruptedException e) {
+						LOGGER.error("Thread interrupted while obtaining the input stream. Attempting clean shutdown.");
+						break;
+					} catch (IOException e) {
+						throw new RuntimeException(e);
 					}
 
-				} else {
-					LOGGER.error("Unexpected object type. Expected " + Transport.class.getCanonicalName() + " but was " + (object == null ? "null" : object.getClass().getCanonicalName()));
+					Object object;
+					try {
+						LOGGER.info("Waiting for request");
+						object = inputStream.readObject();
+						LOGGER.info("Received request");
+					} catch (IOException e) {
+						LOGGER.error(e);
+						continue;
+					} catch (ClassNotFoundException e) {
+						LOGGER.error("Class path is out of sync", e);
+						continue;
+					}
+
+					if (object != null && object instanceof Transport) {
+						Transport transport = (Transport) object;
+						String requestId = transport.getId();
+						Object requestObject = transport.getObject();
+
+						if (requestObject instanceof Callable) {
+							LOGGER.info("Scheduling request to be executed");
+							//noinspection unchecked
+							ezAsync.execute((Callable) requestObject, new RequestCallback(requestId, channel));
+							LOGGER.info("Request execution scheduled");
+						} else {
+							LOGGER.error("Unexpected object type. Expected " + Callable.class.getCanonicalName() + " but was " + (requestObject == null ? "null" : requestObject.getClass().getCanonicalName()));
+						}
+
+					} else {
+						LOGGER.error("Unexpected object type. Expected " + Transport.class.getCanonicalName() + " but was " + (object == null ? "null" : object.getClass().getCanonicalName()));
+					}
+				}
+			} finally {
+				try {
+					channel.close();
+					LOGGER.info("Listener cleanly shut down.");
+				} catch (IOException e) {
+					LOGGER.error("Unable to do clean shutdown.", e);
 				}
 			}
-
-			try {
-				channel.close();
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			}
-			LOGGER.info("Listener cleanly shut down.");
 		}
 	}
 
