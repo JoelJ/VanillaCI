@@ -1,4 +1,4 @@
-package com.joelj.distributedinvoke;
+package com.joelj.distributedinvoke.channels;
 
 import com.joelj.distributedinvoke.logging.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -38,7 +38,7 @@ public abstract class AutoReconnectingChannel implements Closeable {
 	 * @throws InterruptedException
 	 */
 	@NotNull
-	protected ObjectOutputStream getOutputStream() throws IOException, InterruptedException {
+	public ObjectOutputStream getOutputStream() throws IOException, InterruptedException {
 		OutputStream outputStream = null;
 		while(outputStream == null) {
 			if(socket == null) {
@@ -65,7 +65,7 @@ public abstract class AutoReconnectingChannel implements Closeable {
 	 * @throws InterruptedException
 	 */
 	@NotNull
-	protected ObjectInputStream getInputStream() throws IOException, InterruptedException {
+	public ObjectInputStream getInputStream() throws IOException, InterruptedException {
 		InputStream inputStream = null;
 		while(inputStream == null) {
 			if(socket == null) {
