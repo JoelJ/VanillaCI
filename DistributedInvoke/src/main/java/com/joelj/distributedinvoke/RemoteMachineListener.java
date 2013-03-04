@@ -67,26 +67,20 @@ public class RemoteMachineListener implements Closeable {
 
 			try {
 				while (!Thread.interrupted() && !channel.isClosed()) {
-					ObjectInputStream inputStream;
-					try {
-						inputStream = channel.getInputStream();
-					} catch (InterruptedException e) {
-						LOGGER.error("Thread interrupted while obtaining the input stream. Attempting clean shutdown.", e);
-						break;
-					} catch (IOException e) {
-						throw new RuntimeException(e);
-					}
-
 					Object object;
+
 					try {
 						LOGGER.info("Waiting for request");
-						object = inputStream.readObject();
+						object = channel.readObject();
 						LOGGER.info("Received request");
-					} catch (IOException e) {
-						LOGGER.error(e);
-						continue;
 					} catch (ClassNotFoundException e) {
 						LOGGER.error("Class path is out of sync", e);
+						continue;
+					} catch (InterruptedException e) {
+						LOGGER.error(e);
+						break;
+					} catch (IOException e) {
+						LOGGER.error(e);
 						continue;
 					}
 
@@ -122,9 +116,8 @@ public class RemoteMachineListener implements Closeable {
 					String errorMessage = "Unexpected object type. Expected " + Callable.class.getCanonicalName() + " but was " + (requestObject == null ? "null" : requestObject.getClass().getCanonicalName());
 					LOGGER.error(errorMessage);
 
-					try{
-						ObjectOutputStream outputStream = channel.getOutputStream();
-						outputStream.writeObject(Transport.wrapWithId(new Transport.TransportError(errorMessage), requestId));
+					try {
+						channel.writeObject(Transport.wrapWithId(new Transport.TransportError(errorMessage), requestId));
 					} catch (IOException e) {
 						LOGGER.error("Failed to respond with error.");
 					}
@@ -157,9 +150,7 @@ public class RemoteMachineListener implements Closeable {
 			LOGGER.info("Done executing request and received result");
 			Transport<?> response = Transport.wrapWithId(result, id);
 			try {
-				ObjectOutputStream outputStream = channel.getOutputStream();
-				LOGGER.info("Writing response");
-				outputStream.writeObject(response);
+				channel.writeObject(response);
 			} catch (IOException e) {
 				LOGGER.error("Couldn't write response.", e);
 			} catch (InterruptedException e) {

@@ -1,5 +1,6 @@
 package com.joelj.distributedinvoke.channels;
 
+import com.joelj.distributedinvoke.Lock;
 import com.joelj.distributedinvoke.logging.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -12,7 +13,7 @@ import java.net.SocketException;
  * An abstract class that wraps {@link Socket#getInputStream()} and {@link java.net.Socket#getOutputStream()}
  * 	and reconnects the socket if anything goes wrong.
  *
- * 	To implement, provide a {@link #reconnect()} method that returns the new socket.
+ * To implement, provide a {@link #reconnect()} method that returns the new socket.
  *
  * User: Joel Johnson
  * Date: 3/3/13
@@ -24,9 +25,27 @@ public abstract class AutoReconnectingChannel implements Closeable {
 	@NotNull private final String machineName;
 	@Nullable private Socket socket;
 
+	private static final Lock writeLock = new Lock();
+	private static final Lock readLock = new Lock();
+
 	protected AutoReconnectingChannel(@NotNull String machineName, @Nullable Socket socket) throws IOException {
 		this.machineName = machineName;
 		this.socket = socket;
+	}
+
+	public void writeObject(@Nullable Object object) throws IOException, InterruptedException {
+		synchronized (writeLock) {
+			ObjectOutputStream outputStream = getOutputStream();
+			outputStream.writeObject(object);
+			outputStream.flush();
+		}
+	}
+
+	public Object readObject() throws ClassNotFoundException, IOException, InterruptedException {
+		synchronized (readLock) {
+			ObjectInputStream inputStream = getInputStream();
+			return inputStream.readObject();
+		}
 	}
 
 	/**
@@ -38,7 +57,7 @@ public abstract class AutoReconnectingChannel implements Closeable {
 	 * @throws InterruptedException
 	 */
 	@NotNull
-	public ObjectOutputStream getOutputStream() throws IOException, InterruptedException {
+	private ObjectOutputStream getOutputStream() throws IOException, InterruptedException {
 		OutputStream outputStream = null;
 		while(outputStream == null) {
 			if(socket == null) {
@@ -65,7 +84,7 @@ public abstract class AutoReconnectingChannel implements Closeable {
 	 * @throws InterruptedException
 	 */
 	@NotNull
-	public ObjectInputStream getInputStream() throws IOException, InterruptedException {
+	private ObjectInputStream getInputStream() throws IOException, InterruptedException {
 		InputStream inputStream = null;
 		while(inputStream == null) {
 			if(socket == null) {

@@ -28,9 +28,6 @@ public class RemoteChannel extends AutoReconnectingChannel {
 	@NotNull private final InetAddress address;
 	private final int port;
 
-	private static final Lock writeLock = new Lock();
-	private static final Lock readLock = new Lock();
-
 	@NotNull private final Map<String, ResultFuture> pendingRequests;
 
 	/**
@@ -67,12 +64,7 @@ public class RemoteChannel extends AutoReconnectingChannel {
 	@NotNull
 	public ResultFuture writeRequest(@Nullable Object object) throws IOException, InterruptedException {
 		Transport<Object> transport = Transport.wrap(object);
-
-		synchronized (writeLock) {
-			ObjectOutputStream outputStream = getOutputStream();
-			outputStream.writeObject(transport);
-			outputStream.flush();
-		}
+		writeObject(transport);
 
 		ResultFuture future = new ResultFuture();
 		pendingRequests.put(transport.getId(), future);
@@ -90,13 +82,10 @@ public class RemoteChannel extends AutoReconnectingChannel {
 	 */
 	public void readResponse() throws IOException, InterruptedException, ClassPathOutOfSyncException {
 		Object readObject;
-		synchronized (readLock) {
-			ObjectInputStream inputStream = getInputStream();
-			try {
-				readObject = inputStream.readObject();
-			} catch (ClassNotFoundException e) {
-				throw new ClassPathOutOfSyncException(e);
-			}
+		try {
+			readObject = readObject();
+		} catch (ClassNotFoundException e) {
+			throw new ClassPathOutOfSyncException(e);
 		}
 
 		if(readObject != null && readObject instanceof Transport) {
