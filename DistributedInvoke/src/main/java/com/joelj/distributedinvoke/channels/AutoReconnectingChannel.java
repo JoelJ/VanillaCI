@@ -14,6 +14,7 @@ import java.net.SocketException;
  * 	and reconnects the socket if anything goes wrong.
  *
  * To implement, provide a {@link #reconnect()} method that returns the new socket.
+ * That method is called whenever the connection needs to be recreated.
  *
  * User: Joel Johnson
  * Date: 3/3/13
