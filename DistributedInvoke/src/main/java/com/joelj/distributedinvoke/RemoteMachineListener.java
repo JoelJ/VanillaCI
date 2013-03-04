@@ -74,9 +74,10 @@ public class RemoteMachineListener implements Closeable {
 				try {
 					inputStream = channel.getInputStream();
 				} catch (InterruptedException e) {
-					throw new RuntimeException(e); //TODO: handle exception
+					LOGGER.error("Thread interrupted while obtaining the input stream. Attempting clean shutdown.");
+					break;
 				} catch (IOException e) {
-					throw new RuntimeException(e); //TODO: handle exception
+					throw new RuntimeException(e);
 				}
 
 				Object object;
@@ -116,7 +117,7 @@ public class RemoteMachineListener implements Closeable {
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
-			LOGGER.info("Listener shut down.");
+			LOGGER.info("Listener cleanly shut down.");
 		}
 	}
 
