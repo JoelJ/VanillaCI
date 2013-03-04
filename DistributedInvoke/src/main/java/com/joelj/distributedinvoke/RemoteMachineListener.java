@@ -103,7 +103,7 @@ public class RemoteMachineListener implements Closeable {
 						if (requestObject instanceof Callable) {
 							LOGGER.info("Scheduling request to be executed");
 							//noinspection unchecked
-							ezAsync.execute((Callable) requestObject, new RequestCallback(requestId, channel));
+							ezAsync.execute((Callable) requestObject, new RequestCallback(requestId, channel, thread));
 							LOGGER.info("Request execution scheduled");
 						} else {
 							LOGGER.error("Unexpected object type. Expected " + Callable.class.getCanonicalName() + " but was " + (requestObject == null ? "null" : requestObject.getClass().getCanonicalName()));
@@ -131,9 +131,13 @@ public class RemoteMachineListener implements Closeable {
 		@NotNull
 		private final ServerSocketRemoteChannel channel;
 
-		public RequestCallback(@NotNull String id, @NotNull ServerSocketRemoteChannel channel) {
+		@NotNull
+		private final Thread threadToInterruptOnError;
+
+		public RequestCallback(@NotNull String id, @NotNull ServerSocketRemoteChannel channel, @NotNull Thread threadToInterruptOnError) {
 			this.id = id;
 			this.channel = channel;
+			this.threadToInterruptOnError = threadToInterruptOnError;
 		}
 
 		@Override
@@ -147,12 +151,8 @@ public class RemoteMachineListener implements Closeable {
 			} catch (IOException e) {
 				LOGGER.error("Couldn't write response.", e);
 			} catch (InterruptedException e) {
-				LOGGER.error("Thread interrupted. Closing channel.", e);
-				try {
-					channel.close();
-				} catch (IOException closeChannelException) {
-					LOGGER.error("Error while trying to close channel.", closeChannelException);
-				}
+				LOGGER.error("Writing response interrupted. Interrupting listening loop.", e);
+				threadToInterruptOnError.interrupt();
 			}
 		}
 	}
