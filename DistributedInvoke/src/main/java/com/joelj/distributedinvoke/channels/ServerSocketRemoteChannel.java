@@ -18,9 +18,13 @@ public class ServerSocketRemoteChannel extends AutoReconnectingChannel {
 	private volatile boolean closed;
 	private final Lock closeLock = new Lock();
 
-	public static ServerSocketRemoteChannel create(int listeningPort, InetAddress bindAddress) throws IOException {
-		ServerSocket serverSocket = new ServerSocket(listeningPort, 0, bindAddress);
-		return new ServerSocketRemoteChannel(serverSocket);
+	public static ServerSocketRemoteChannel create(InetAddress bindAddress, int listeningPort) {
+		try {
+			ServerSocket serverSocket = new ServerSocket(listeningPort, 0, bindAddress);
+			return new ServerSocketRemoteChannel(serverSocket);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	private ServerSocketRemoteChannel(@NotNull ServerSocket serverSocket) throws IOException {

@@ -48,4 +48,16 @@ public class Transport<T> implements Serializable {
 	public String toString() {
 		return "Transport<" + (object == null ? "null" : object.getClass().getCanonicalName()) +"> " + id;
 	}
+
+	public static class TransportError implements Serializable {
+		private final String message;
+
+		public TransportError(String message) {
+			this.message = message;
+		}
+
+		public String getMessage() {
+			return message;
+		}
+	}
 }

@@ -63,12 +63,7 @@ public class RemoteMachineListener implements Closeable {
 	private class ListeningThread implements Runnable {
 		@Override
 		public void run() {
-			ServerSocketRemoteChannel channel;
-			try {
-				channel = ServerSocketRemoteChannel.create(listeningPort, bindAddress);
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			}
+			ServerSocketRemoteChannel channel = ServerSocketRemoteChannel.create(bindAddress, listeningPort);
 
 			try {
 				while (!Thread.interrupted() && !channel.isClosed()) {
@@ -76,7 +71,7 @@ public class RemoteMachineListener implements Closeable {
 					try {
 						inputStream = channel.getInputStream();
 					} catch (InterruptedException e) {
-						LOGGER.error("Thread interrupted while obtaining the input stream. Attempting clean shutdown.");
+						LOGGER.error("Thread interrupted while obtaining the input stream. Attempting clean shutdown.", e);
 						break;
 					} catch (IOException e) {
 						throw new RuntimeException(e);
@@ -95,22 +90,11 @@ public class RemoteMachineListener implements Closeable {
 						continue;
 					}
 
-					if (object != null && object instanceof Transport) {
-						Transport transport = (Transport) object;
-						String requestId = transport.getId();
-						Object requestObject = transport.getObject();
-
-						if (requestObject instanceof Callable) {
-							LOGGER.info("Scheduling request to be executed");
-							//noinspection unchecked
-							ezAsync.execute((Callable) requestObject, new RequestCallback(requestId, channel, thread));
-							LOGGER.info("Request execution scheduled");
-						} else {
-							LOGGER.error("Unexpected object type. Expected " + Callable.class.getCanonicalName() + " but was " + (requestObject == null ? "null" : requestObject.getClass().getCanonicalName()));
-						}
-
-					} else {
-						LOGGER.error("Unexpected object type. Expected " + Transport.class.getCanonicalName() + " but was " + (object == null ? "null" : object.getClass().getCanonicalName()));
+					try {
+						processRequest(channel, object);
+					} catch (InterruptedException e) {
+						LOGGER.error(e);
+						break;
 					}
 				}
 			} finally {
@@ -120,6 +104,34 @@ public class RemoteMachineListener implements Closeable {
 				} catch (IOException e) {
 					LOGGER.error("Unable to do clean shutdown.", e);
 				}
+			}
+		}
+
+		private void processRequest(ServerSocketRemoteChannel channel, Object bareRequest) throws InterruptedException {
+			if (bareRequest != null && bareRequest instanceof Transport) {
+				Transport transport = (Transport) bareRequest;
+				String requestId = transport.getId();
+				Object requestObject = transport.getObject();
+
+				if (requestObject instanceof Callable) {
+					LOGGER.info("Scheduling request to be executed");
+					//noinspection unchecked
+					ezAsync.execute((Callable) requestObject, new RequestCallback(requestId, channel, thread));
+					LOGGER.info("Request execution scheduled");
+				} else {
+					String errorMessage = "Unexpected object type. Expected " + Callable.class.getCanonicalName() + " but was " + (requestObject == null ? "null" : requestObject.getClass().getCanonicalName());
+					LOGGER.error(errorMessage);
+
+					try{
+						ObjectOutputStream outputStream = channel.getOutputStream();
+						outputStream.writeObject(Transport.wrapWithId(new Transport.TransportError(errorMessage), requestId));
+					} catch (IOException e) {
+						LOGGER.error("Failed to respond with error.");
+					}
+				}
+
+			} else {
+				LOGGER.error("Unexpected object type. Expected " + Transport.class.getCanonicalName() + " but was " + (bareRequest == null ? "null" : bareRequest.getClass().getCanonicalName()));
 			}
 		}
 	}
