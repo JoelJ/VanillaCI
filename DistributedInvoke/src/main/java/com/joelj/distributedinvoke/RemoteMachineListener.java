@@ -7,8 +7,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.*;
 import java.net.InetAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
 import java.util.concurrent.Callable;
 
 /**
@@ -63,39 +61,21 @@ public class RemoteMachineListener implements Closeable {
 	private class ListeningThread implements Runnable {
 		@Override
 		public void run() {
-			ServerSocket serverSocket;
+			ServerSocketRemoteChannel channel;
 			try {
-				serverSocket = new ServerSocket(listeningPort, 0, bindAddress);
+				channel = ServerSocketRemoteChannel.create(listeningPort, bindAddress);
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
 
-			Socket clientSocket = null;
-			while(!Thread.interrupted()) {
-				if(clientSocket == null) {
-					//Either this is the first iteration, or we lost connection with the client and we should wait for it to reconnect.
-					try {
-						clientSocket = serverSocket.accept();
-					} catch (IOException e) {
-						throw new RuntimeException(e);
-					}
-				}
-
-				assert clientSocket != null;
-
+			while(!Thread.interrupted() && !channel.isClosed()) {
 				ObjectInputStream inputStream;
 				try {
-					inputStream = new ObjectInputStream(clientSocket.getInputStream());
+					inputStream = channel.getInputStream();
+				} catch (InterruptedException e) {
+					throw new RuntimeException(e); //TODO: handle exception
 				} catch (IOException e) {
-					LOGGER.warn("IOException. Retrying connection.", e);
-					LOGGER.info("Attempting to close current socket.");
-					try {
-						clientSocket.close();
-					} catch (IOException closeException) {
-						LOGGER.info("Couldn't close current socket.", closeException);
-					}
-					clientSocket = null;
-					continue;
+					throw new RuntimeException(e); //TODO: handle exception
 				}
 
 				Object object;
@@ -119,7 +99,7 @@ public class RemoteMachineListener implements Closeable {
 					if(requestObject instanceof Callable) {
 						LOGGER.info("Scheduling request to be executed");
 						//noinspection unchecked
-						ezAsync.execute((Callable) requestObject, new RequestCallback(requestId, clientSocket));
+						ezAsync.execute((Callable) requestObject, new RequestCallback(requestId, channel));
 						LOGGER.info("Request execution scheduled");
 					} else {
 						LOGGER.error("Unexpected object type. Expected " + Callable.class.getCanonicalName() + " but was " + (requestObject == null ? "null" : requestObject.getClass().getCanonicalName()));
@@ -131,7 +111,7 @@ public class RemoteMachineListener implements Closeable {
 			}
 
 			try {
-				serverSocket.close();
+				channel.close();
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
@@ -144,11 +124,11 @@ public class RemoteMachineListener implements Closeable {
 		private final String id;
 
 		@NotNull
-		private final Socket clientSocket;
+		private final ServerSocketRemoteChannel channel;
 
-		public RequestCallback(@NotNull String id, @NotNull Socket clientSocket) {
+		public RequestCallback(@NotNull String id, @NotNull ServerSocketRemoteChannel channel) {
 			this.id = id;
-			this.clientSocket = clientSocket;
+			this.channel = channel;
 		}
 
 		@Override
@@ -156,11 +136,18 @@ public class RemoteMachineListener implements Closeable {
 			LOGGER.info("Done executing request and received result");
 			Transport<?> response = Transport.wrapWithId(result, id);
 			try {
-				ObjectOutputStream outputStream = new ObjectOutputStream(clientSocket.getOutputStream());
+				ObjectOutputStream outputStream = channel.getOutputStream();
 				LOGGER.info("Writing response");
 				outputStream.writeObject(response);
 			} catch (IOException e) {
 				LOGGER.error("Couldn't write response.", e);
+			} catch (InterruptedException e) {
+				LOGGER.error("Thread interrupted. Closing channel.", e);
+				try {
+					channel.close();
+				} catch (IOException closeChannelException) {
+					LOGGER.error("Error while trying to close channel.", closeChannelException);
+				}
 			}
 		}
 	}

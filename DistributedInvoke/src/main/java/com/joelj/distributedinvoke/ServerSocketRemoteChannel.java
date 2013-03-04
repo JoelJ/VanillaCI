@@ -1,0 +1,60 @@
+package com.joelj.distributedinvoke;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
+
+/**
+ * User: Joel Johnson
+ * Date: 3/3/13
+ * Time: 7:31 PM
+ */
+public class ServerSocketRemoteChannel extends AutoReconnectingChannel {
+	@NotNull private final ServerSocket serverSocket;
+	private volatile boolean closed;
+	private final Lock closeLock = new Lock();
+
+	public static ServerSocketRemoteChannel create(int listeningPort, InetAddress bindAddress) throws IOException {
+		ServerSocket serverSocket = new ServerSocket(listeningPort, 0, bindAddress);
+		return new ServerSocketRemoteChannel(serverSocket);
+	}
+
+	private ServerSocketRemoteChannel(@NotNull ServerSocket serverSocket) throws IOException {
+		super(ServerSocketRemoteChannel.class.getCanonicalName(), null);
+		this.serverSocket = serverSocket;
+	}
+
+	@NotNull
+	@Override
+	protected Socket reconnect() throws IOException {
+		return serverSocket.accept();
+	}
+
+	@Override
+	public void close() throws IOException {
+		if(closed) {
+			throw new IllegalStateException("Already closed.");
+		}
+
+		synchronized (closeLock) {
+			if(closed) {
+				throw new IllegalStateException("Already closed.");
+			}
+
+			closed = true;
+			try {
+				super.close();
+			} finally {
+				serverSocket.close();
+			}
+		}
+	}
+
+	public boolean isClosed() {
+		return closed;
+	}
+}

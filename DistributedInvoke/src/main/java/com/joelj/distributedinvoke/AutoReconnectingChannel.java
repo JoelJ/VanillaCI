@@ -2,6 +2,7 @@ package com.joelj.distributedinvoke;
 
 import com.joelj.distributedinvoke.logging.Logger;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.*;
 import java.net.Socket;
@@ -21,9 +22,9 @@ public abstract class AutoReconnectingChannel implements Closeable {
 	private static final Logger LOGGER = Logger.forClass(AutoReconnectingChannel.class);
 
 	@NotNull private final String machineName;
-	@NotNull private Socket socket;
+	@Nullable private Socket socket;
 
-	protected AutoReconnectingChannel(@NotNull String machineName, @NotNull Socket socket) throws IOException {
+	protected AutoReconnectingChannel(@NotNull String machineName, @Nullable Socket socket) throws IOException {
 		this.machineName = machineName;
 		this.socket = socket;
 	}
@@ -40,6 +41,9 @@ public abstract class AutoReconnectingChannel implements Closeable {
 	protected ObjectOutputStream getOutputStream() throws IOException, InterruptedException {
 		OutputStream outputStream = null;
 		while(outputStream == null) {
+			if(socket == null) {
+				socket = reconnect();
+			}
 			try {
 				outputStream = socket.getOutputStream();
 			} catch (SocketException e) {
@@ -64,6 +68,9 @@ public abstract class AutoReconnectingChannel implements Closeable {
 	protected ObjectInputStream getInputStream() throws IOException, InterruptedException {
 		InputStream inputStream = null;
 		while(inputStream == null) {
+			if(socket == null) {
+				socket = reconnect();
+			}
 			try {
 				inputStream = socket.getInputStream();
 			} catch (SocketException e) {
@@ -89,8 +96,12 @@ public abstract class AutoReconnectingChannel implements Closeable {
 	 * @throws IOException
 	 */
 	public void close() throws IOException {
-		LOGGER.infop("Closing connection with %s", machineName);
-		socket.close();
+		if(socket != null) {
+			LOGGER.infop("Closing connection with %s", machineName);
+			socket.close();
+		} else {
+			LOGGER.infop("Attempted to close null socket on %s", machineName);
+		}
 	}
 
 	/**
