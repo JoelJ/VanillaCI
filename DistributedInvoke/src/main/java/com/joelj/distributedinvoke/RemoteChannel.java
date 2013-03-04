@@ -9,7 +9,6 @@ import org.jetbrains.annotations.Nullable;
 import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.net.SocketException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -21,18 +20,16 @@ import java.util.concurrent.ConcurrentHashMap;
  * Date: 3/2/13
  * Time: 12:09 AM
  */
-public class RemoteChannel implements Closeable {
+public class RemoteChannel extends AutoReconnectingChannel {
 	private static final Logger LOGGER = Logger.forClass(RemoteChannel.class);
 
-	private final String machineName;
-	private final InetAddress address;
+	@NotNull private final InetAddress address;
 	private final int port;
-	private Socket clientSocket;
 
 	private static final Lock writeLock = new Lock();
 	private static final Lock readLock = new Lock();
 
-	private final Map<String, ResultFuture> pendingRequests;
+	@NotNull private final Map<String, ResultFuture> pendingRequests;
 
 	/**
 	 * Creates a new instance of the RemoteChannel.
@@ -49,11 +46,11 @@ public class RemoteChannel implements Closeable {
 	}
 
 	private RemoteChannel(@NotNull String machineName, @NotNull InetAddress address, int port) throws IOException {
-		LOGGER.infop("Opening connection with %s (%s:%d)", machineName, address.toString(), port);
-		this.machineName = machineName;
+		super(machineName, new Socket(address, port));
+		LOGGER.infop("Opened connection with %s (%s:%d)", machineName, address.toString(), port);
+
 		this.address = address;
 		this.port = port;
-		this.clientSocket = new Socket(address, port);
 		this.pendingRequests = new ConcurrentHashMap<String, ResultFuture>();
 	}
 
@@ -114,75 +111,24 @@ public class RemoteChannel implements Closeable {
 		}
 	}
 
-	/**
-	 * Gets the output stream from the socket.
-	 * If there are any problems obtaining the stream (such as the socket has been closed),
-	 * 	then it will attempt to reconnect until the thread is interrupted or until the stream has been obtained.
-	 * @return The output stream for the current connection to the remote socket. Never will be null.
-	 * @throws IOException
-	 * @throws InterruptedException
-	 */
 	@NotNull
-	private ObjectOutputStream getOutputStream() throws IOException, InterruptedException {
-		OutputStream outputStream = null;
-		while(outputStream == null) {
-			try {
-				outputStream = clientSocket.getOutputStream();
-			} catch (SocketException e) {
-				LOGGER.error("Lost connection with " + machineName + ". Retrying.", e);
-
-				outputStream = null;
-
-				try {
-					clientSocket.close();
-				} catch (IOException closeException) {
-					LOGGER.warn("Exception thrown while closing socket", closeException);
-				}
-				clientSocket = new Socket(address, port);
-			}
-			Thread.sleep(1000);
-		}
-		return new ObjectOutputStream(outputStream);
-	}
-
-	/**
-	 * Gets the input stream from the socket.
-	 * If there are any problems obtaining the stream (such as the socket has been closed),
-	 * 	then it will attempt to reconnect until the thread is interrupted or until the stream has been obtained.
-	 * @return The output stream for the current connection to the remote socket. Never will be null.
-	 * @throws IOException
-	 * @throws InterruptedException
-	 */
-	@NotNull
-	private ObjectInputStream getInputStream() throws IOException, InterruptedException {
-		InputStream inputStream = null;
-		while(inputStream == null) {
-			try {
-				inputStream = clientSocket.getInputStream();
-			} catch (SocketException e) {
-				LOGGER.error("Lost connection with " + machineName + ". Retrying.", e);
-
-				inputStream = null;
-
-				try {
-					clientSocket.close();
-				} catch (IOException closeException) {
-					LOGGER.warn("Exception thrown while closing socket", closeException);
-				}
-				clientSocket = new Socket(this.address, this.port);
-			}
-			Thread.sleep(1000);
-		}
-		return new ObjectInputStream(inputStream);
-	}
-
-	/**
-	 * Closes the underlying connection to the remote machine.
-	 * @throws IOException
-	 */
 	@Override
-	public void close() throws IOException {
-		LOGGER.infop("Closing connection with %s (%s:%d)", machineName, address.toString(), port);
-		clientSocket.close();
+	protected Socket reconnect() throws IOException {
+		try {
+			close();
+		} catch (IOException closeException) {
+			LOGGER.warn("Exception thrown while closing socket", closeException);
+		}
+
+		return new Socket(address, port);
+	}
+
+	@Override
+	public String toString() {
+		return "RemoteChannel{" +
+				"machineName='" + getMachineName() + '\'' +
+				"address=" + address +
+				", port=" + port +
+				'}';
 	}
 }
