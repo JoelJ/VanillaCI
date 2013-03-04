@@ -1,6 +1,7 @@
 package com.joelj.distributedinvoke.channels;
 
 import com.joelj.distributedinvoke.Lock;
+import com.joelj.distributedinvoke.logging.Logger;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -14,6 +15,8 @@ import java.net.Socket;
  * Time: 7:31 PM
  */
 public class ServerSocketRemoteChannel extends AutoReconnectingChannel {
+	private static final Logger LOGGER = Logger.forClass(AutoReconnectingChannel.class);
+
 	@NotNull private final ServerSocket serverSocket;
 	private volatile boolean closed;
 	private final Lock closeLock = new Lock();
@@ -35,7 +38,10 @@ public class ServerSocketRemoteChannel extends AutoReconnectingChannel {
 	@NotNull
 	@Override
 	protected Socket reconnect() throws IOException {
-		return serverSocket.accept();
+		LOGGER.info("Waiting for client to connect.");
+		Socket accept = serverSocket.accept();
+		LOGGER.info("Accepted client.");
+		return accept;
 	}
 
 	@Override
