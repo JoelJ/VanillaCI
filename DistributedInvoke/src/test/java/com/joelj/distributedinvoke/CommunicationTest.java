@@ -1,5 +1,6 @@
 package com.joelj.distributedinvoke;
 
+import com.joelj.distributedinvoke.exceptions.NotEnoughExecutorsException;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.Test;
 
@@ -18,7 +19,7 @@ import static org.testng.Assert.*;
  */
 public class CommunicationTest {
 	private RemoteMachineListener listener;
-	private RemoteMachine machine;
+	private Machine machine;
 
 	@AfterMethod
 	public void tearDownListener() throws IOException {
@@ -40,11 +41,16 @@ public class CommunicationTest {
 		int listeningPort = 9191;
 
 		listener = RemoteMachineListener.start(localHost, listeningPort);
-		machine = RemoteMachineImpl.connectToMachine("Test Machine", localHost, listeningPort);
+		machine = RemoteMachine.connectToMachine("Test Machine", localHost, listeningPort);
 
 		String invoke = machine.invoke(new MyCallable("Hello There"));
 
 		assertEquals(invoke, "Hello There");
+
+		try {
+			machine.invoke(new MyCallable("This is too heavy!"), 10);
+			fail("Should throw " + NotEnoughExecutorsException.class.getCanonicalName());
+		} catch (NotEnoughExecutorsException ignore) {}
 	}
 }
 
