@@ -44,12 +44,12 @@ public class RemoteMachine implements Machine {
 	 * 		an exception IOException is thrown
 	 */
 	@NotNull
-	public static Machine connectToMachine(@NotNull String name, @NotNull InetAddress address, int port) throws IOException {
+	public static Machine connectToMachine(@NotNull String name, @NotNull InetAddress address, int port, int executorCount) throws IOException {
 		if(port <= 0) {
 			throw new IllegalArgumentException("'port' must be a positive integer");
 		}
 
-		return new RemoteMachine(name, address, port, 5); //TODO: parametrize executor count
+		return new RemoteMachine(name, address, port, executorCount);
 	}
 
 	private RemoteMachine(@NotNull String name, @NotNull InetAddress address, int port, int executorCount) throws IOException {
