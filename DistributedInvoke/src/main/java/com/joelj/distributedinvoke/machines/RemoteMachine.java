@@ -1,4 +1,4 @@
-package com.joelj.distributedinvoke;
+package com.joelj.distributedinvoke.machines;
 
 import com.joelj.distributedinvoke.channels.RemoteChannel;
 import com.joelj.distributedinvoke.channels.ResultFuture;

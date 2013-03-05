@@ -1,6 +1,7 @@
-package com.joelj.distributedinvoke;
+package com.joelj.distributedinvoke.machines;
 
 import com.joelj.distributedinvoke.channels.ServerSocketRemoteChannel;
+import com.joelj.distributedinvoke.channels.Transport;
 import com.joelj.distributedinvoke.logging.Logger;
 import com.joelj.ezasync.EzAsync;
 import org.jetbrains.annotations.NotNull;

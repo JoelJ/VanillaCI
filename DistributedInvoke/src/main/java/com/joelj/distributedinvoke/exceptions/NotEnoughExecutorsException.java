@@ -1,6 +1,6 @@
 package com.joelj.distributedinvoke.exceptions;
 
-import com.joelj.distributedinvoke.Machine;
+import com.joelj.distributedinvoke.machines.Machine;
 import org.jetbrains.annotations.NotNull;
 
 /**

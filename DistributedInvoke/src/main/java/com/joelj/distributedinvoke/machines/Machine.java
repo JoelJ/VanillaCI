@@ -1,4 +1,4 @@
-package com.joelj.distributedinvoke;
+package com.joelj.distributedinvoke.machines;
 
 import com.joelj.distributedinvoke.exceptions.NotEnoughExecutorsException;
 import org.jetbrains.annotations.NotNull;

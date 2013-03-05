@@ -1,4 +1,4 @@
-package com.joelj.distributedinvoke;
+package com.joelj.distributedinvoke.channels;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

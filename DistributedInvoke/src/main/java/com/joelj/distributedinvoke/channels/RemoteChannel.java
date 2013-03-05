@@ -1,6 +1,5 @@
 package com.joelj.distributedinvoke.channels;
 
-import com.joelj.distributedinvoke.Transport;
 import com.joelj.distributedinvoke.exceptions.ClassPathOutOfSyncException;
 import com.joelj.distributedinvoke.exceptions.UnexpectedResultException;
 import com.joelj.distributedinvoke.logging.Logger;

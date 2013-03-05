@@ -1,6 +1,9 @@
 package com.joelj.distributedinvoke;
 
 import com.joelj.distributedinvoke.exceptions.NotEnoughExecutorsException;
+import com.joelj.distributedinvoke.machines.Machine;
+import com.joelj.distributedinvoke.machines.RemoteMachine;
+import com.joelj.distributedinvoke.machines.RemoteMachineListener;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.Test;
 
