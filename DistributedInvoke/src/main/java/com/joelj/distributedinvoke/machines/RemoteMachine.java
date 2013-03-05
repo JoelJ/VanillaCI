@@ -7,6 +7,7 @@ import com.joelj.distributedinvoke.exceptions.NotEnoughExecutorsException;
 import com.joelj.distributedinvoke.exceptions.UnexpectedResultException;
 import com.joelj.distributedinvoke.logging.Logger;
 import com.joelj.distributedinvoke.machines.labels.Label;
+import com.joelj.ezasync.EzAsync;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -86,29 +87,32 @@ public class RemoteMachine implements Machine {
 		this.labels = labels;
 	}
 
+
 	@Nullable
 	@Override
-	public <T extends Serializable> T invoke(@NotNull Callable<T> remoteCall) throws IOException, InterruptedException, NotEnoughExecutorsException {
-		return invoke(remoteCall, 1);
+	public <T extends Serializable> T invoke(@NotNull Callable<T> remoteCall, int weight) throws IOException, InterruptedException, NotEnoughExecutorsException {
+		ResultFuture<T> resultFuture = invokeAsync(remoteCall, weight);
+		return resultFuture.waitForResult();
 	}
 
+	@NotNull
 	@Override
-	public <T extends Serializable> T invoke(@NotNull Callable<T> remoteCall, int weight) throws IOException, InterruptedException, NotEnoughExecutorsException {
-		if (weight > getAvailableExecutorCount()) {
+	public <T extends Serializable> ResultFuture<T> invokeAsync(@NotNull Callable<T> remoteCall, int weight) throws IOException, InterruptedException, NotEnoughExecutorsException {
+		final int normalizedWeight = weight > 0 ? weight : 1;
+		if (normalizedWeight > getAvailableExecutorCount()) {
 			throw new NotEnoughExecutorsException(this);
 		}
 
-		busyExecutorCount.addAndGet(weight);
+		busyExecutorCount.addAndGet(normalizedWeight);
 
-		try {
-			ResultFuture resultFuture = channel.writeRequest(remoteCall);
-			Object result = resultFuture.waitForResult();
-
-			//noinspection unchecked
-			return (T) result;
-		} finally {
-			busyExecutorCount.addAndGet(-weight);
-		}
+		ResultFuture<T> resultFuture = channel.writeRequest(remoteCall);
+		resultFuture.registerCallback(new EzAsync.Callback<T>() {
+			@Override
+			public void done(@Nullable T result) {
+				busyExecutorCount.addAndGet(-normalizedWeight);
+			}
+		});
+		return resultFuture;
 	}
 
 	@Override
