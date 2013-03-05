@@ -3,6 +3,7 @@ package com.joelj.distributedinvoke.channels;
 import com.joelj.distributedinvoke.Lock;
 import com.joelj.distributedinvoke.exceptions.UnexpectedResultException;
 import com.joelj.ezasync.EzAsync;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.LinkedList;
@@ -16,13 +17,23 @@ import java.util.List;
  * Time: 11:06 AM
  */
 public final class ResultFuture<T> {
+	private final String requestId;
 	private volatile T result;
 	private volatile boolean set;
 	private final Lock waitLock = new Lock();
 	private final List<EzAsync.Callback<T>> callbacks = new LinkedList<EzAsync.Callback<T>>();
 
-	/* package */ ResultFuture() {
+	@NotNull
+	/* package */ static <T> ResultFuture<T> create(@NotNull String id) {
+		return new ResultFuture<T>(id);
+	}
 
+	private ResultFuture(@NotNull String requestId) {
+		this.requestId = requestId;
+	}
+
+	public String getRequestId() {
+		return requestId;
 	}
 
 	/**

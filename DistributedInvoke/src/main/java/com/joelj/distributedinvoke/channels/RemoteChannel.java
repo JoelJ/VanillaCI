@@ -65,7 +65,7 @@ public class RemoteChannel extends AutoReconnectingChannel {
 		Transport<Callable<T>> transport = Transport.wrap(object);
 		writeObject(transport);
 
-		ResultFuture<T> future = new ResultFuture<T>();
+		ResultFuture<T> future = ResultFuture.create(transport.getId());
 		pendingRequests.put(transport.getId(), future);
 		return future;
 	}
