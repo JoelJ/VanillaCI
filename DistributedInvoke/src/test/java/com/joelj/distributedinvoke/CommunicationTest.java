@@ -44,9 +44,9 @@ public class CommunicationTest {
 		int listeningPort = 9191;
 
 		listener = RemoteMachineListener.start(localHost, listeningPort);
-		machine = RemoteMachine.connectToMachine("Test Machine", localHost, listeningPort, 1);
+		machine = RemoteMachine.connectToMachine("Test Machine", localHost, listeningPort, 1, "");
 
-		String invoke = machine.invoke(new MyCallable("Hello There"));
+		String invoke = machine.invoke(new MyCallable("Hello There"), 1);
 
 		assertEquals(invoke, "Hello There");
 
