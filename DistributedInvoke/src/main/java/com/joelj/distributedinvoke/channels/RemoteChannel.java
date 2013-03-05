@@ -10,6 +10,7 @@ import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -60,11 +61,11 @@ public class RemoteChannel extends AutoReconnectingChannel {
 	 * @throws InterruptedException When the thread is canceled.
 	 */
 	@NotNull
-	public ResultFuture writeRequest(@Nullable Object object) throws IOException, InterruptedException {
-		Transport<Object> transport = Transport.wrap(object);
+	public <T> ResultFuture<T> writeRequest(@Nullable Callable<T> object) throws IOException, InterruptedException {
+		Transport<Callable<T>> transport = Transport.wrap(object);
 		writeObject(transport);
 
-		ResultFuture future = new ResultFuture();
+		ResultFuture<T> future = new ResultFuture<T>();
 		pendingRequests.put(transport.getId(), future);
 		return future;
 	}
@@ -93,6 +94,7 @@ public class RemoteChannel extends AutoReconnectingChannel {
 			if(resultFuture == null) {
 				LOGGER.warn("Received response for unknown ID");
 			} else {
+				//noinspection unchecked
 				resultFuture.setResult(transport.getObject());
 			}
 		} else {
