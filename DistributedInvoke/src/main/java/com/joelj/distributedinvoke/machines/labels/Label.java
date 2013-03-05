@@ -7,6 +7,11 @@ import java.io.Serializable;
 import java.util.List;
 
 /**
+ * Used to give arbitrary metadata to machines and jobs.
+ * Intended to be a way to run jobs only on matching machines,
+ * however, it will be completely dependant on what various plugins
+ * do with this data that really define the behavior of the Label.
+ *
  * User: Joel Johnson
  * Date: 3/4/13
  * Time: 7:25 PM

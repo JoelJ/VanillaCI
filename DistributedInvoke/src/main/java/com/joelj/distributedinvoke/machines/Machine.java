@@ -1,6 +1,7 @@
 package com.joelj.distributedinvoke.machines;
 
 import com.joelj.distributedinvoke.exceptions.NotEnoughExecutorsException;
+import com.joelj.distributedinvoke.machines.labels.Label;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -58,4 +59,6 @@ public interface Machine extends Closeable {
 	int getTotalExecutorCount();
 	int getAvailableExecutorCount();
 	int getBusyExecutorCount();
+
+	Label.Expression getLabels();
 }

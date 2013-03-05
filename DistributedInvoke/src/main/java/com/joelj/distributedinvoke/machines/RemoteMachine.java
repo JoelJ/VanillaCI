@@ -6,6 +6,7 @@ import com.joelj.distributedinvoke.exceptions.ClassPathOutOfSyncException;
 import com.joelj.distributedinvoke.exceptions.NotEnoughExecutorsException;
 import com.joelj.distributedinvoke.exceptions.UnexpectedResultException;
 import com.joelj.distributedinvoke.logging.Logger;
+import com.joelj.distributedinvoke.machines.labels.Label;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -31,6 +32,7 @@ public class RemoteMachine implements Machine {
 
 	private transient final RemoteChannel channel;
 	private transient Thread listenerThread;
+	private final Label.Expression labels;
 
 	/**
 	 * Connects to the machine at the given address.
@@ -44,15 +46,27 @@ public class RemoteMachine implements Machine {
 	 * 		an exception IOException is thrown
 	 */
 	@NotNull
-	public static Machine connectToMachine(@NotNull String name, @NotNull InetAddress address, int port, int executorCount) throws IOException {
+	public static Machine connectToMachine(
+			@NotNull String name,
+			@NotNull InetAddress address,
+			int port,
+			int executorCount,
+			String labels
+	) throws IOException {
 		if(port <= 0) {
 			throw new IllegalArgumentException("'port' must be a positive integer");
 		}
-
-		return new RemoteMachine(name, address, port, executorCount);
+		Label.Expression labelExpression = Label.parse(labels);
+		return new RemoteMachine(name, address, port, executorCount, labelExpression);
 	}
 
-	private RemoteMachine(@NotNull String name, @NotNull InetAddress address, int port, int executorCount) throws IOException {
+	private RemoteMachine(
+			@NotNull String name,
+			@NotNull InetAddress address,
+			int port,
+			int executorCount,
+			@NotNull Label.Expression labels
+	) throws IOException {
 		assert port > 0;
 		this.name = name;
 		this.address = address;
@@ -69,6 +83,7 @@ public class RemoteMachine implements Machine {
 			}
 		}));
 		this.listenerThread.start();
+		this.labels = labels;
 	}
 
 	@Nullable
@@ -131,6 +146,11 @@ public class RemoteMachine implements Machine {
 	@Override
 	public void close() throws IOException {
 		channel.close();
+	}
+
+	@Override
+	public Label.Expression getLabels() {
+		return labels;
 	}
 
 	private class RemoteMachineListener implements Runnable {
