@@ -52,6 +52,13 @@ public class Logger {
 		}
 	}
 
+	public void warn(Throwable e) {
+		if(logger.isLoggable(Level.WARNING)) {
+			String stackTrace = e == null ? "" : ExceptionUtils.getFullStackTrace(e);
+			logger.warning(stackTrace);
+		}
+	}
+
 	public void info(String message) {
 		logger.info(message);
 	}
